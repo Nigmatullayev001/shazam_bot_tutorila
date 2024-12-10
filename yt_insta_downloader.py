@@ -155,9 +155,9 @@ async def process_video_request(message: types.Message):
             found_extensions_vid = [ext for ext in extensions_to_find_vid if ext in ''.join(parts)]
             found_extensions_img = [ext for ext in extensions_to_find_img if ext in ''.join(parts)]
 
-            if found_extensions_vid:
+            if found_extensions_vid is not []:
                 await bot.send_video(message.chat.id, media_url, caption="Here is your video!")
-            elif found_extensions_img:
+            elif found_extensions_img is not []:
                 await bot.send_photo(message.chat.id, media_url, caption="Here is your photo!")
             else:
                 await message.reply({
