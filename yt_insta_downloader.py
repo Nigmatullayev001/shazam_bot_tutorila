@@ -57,22 +57,19 @@ def fetch_instagram_media(url):
         "X-RapidAPI-Host": RAPIDAPI_HOST_INSTAGRAM,
     }
     params = {"url": url}
-    response = requests.get(endpoint, headers=headers, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        print(data)
-        if data.get("status") and "result" in data:
-            # Extract the first media item in the result array
-            media = data["result"][0]['url']
-            # media = data["result"][0]
-            return media
-        else:
-            print('Ishlamadi')
-            return None
 
-    else:
-        print(f"Error fetching Instagram media. Status: {response.status_code}, Response: {response.text}")
+    try:
+        response = requests.get(endpoint, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get("status") and "result" in data:
+            return data["result"]
         return None
+    except requests.RequestException as e:
+        print(f"Error fetching Instagram media: {e}")
+        return None
+
     # except requests.RequestException as e:
     #     print(f"Request error: {e}")
     #     return None
@@ -137,40 +134,50 @@ async def process_video_request(message: types.Message):
                                     "en": "Sorry, there was an error downloading the video."
                                 }[user_language])
     elif "instagram.com" in url:
-        await message.reply({
-                                "uz": "Instagram mediatsiyasini yuklab olayapman, iltimos kuting...",
-                                "ru": "Загружаю медиа из Instagram, пожалуйста, подождите...",
-                                "en": "Downloading Instagram media, please wait..."
-                            }[user_language])
-        media_url = fetch_instagram_media(url)
-        print(media_url)
-        try:
-            parts = media_url.split('/')
+        messages = {
+            "uz": "Instagram mediatsiyasini yuklab olayapman, iltimos kuting...",
+            "ru": "Загружаю медиа из Instagram, пожалуйста, подождите...",
+            "en": "Downloading Instagram media, please wait...",
+        }
 
-            # Qidiriladigan kengaytmalar
-            extensions_to_find_vid = ['.mp4' or '.mov']
-            extensions_to_find_img = ['.jpg' or '.png' or '.jpeg']
+        await message.reply(messages[user_language])
 
-            # Topilgan kengaytmalar
-            found_extensions_vid = [ext for ext in extensions_to_find_vid if ext in ''.join(parts)]
-            found_extensions_img = [ext for ext in extensions_to_find_img if ext in ''.join(parts)]
+        media_items = fetch_instagram_media(url)
+        print(media_items)
+        if media_items:
+            for media in media_items:
+                media_url = media.get("url")
 
-            if found_extensions_vid is not []:
-                await bot.send_video(message.chat.id, media_url, caption="Here is your video!")
-            elif found_extensions_img is not []:
-                await bot.send_photo(message.chat.id, media_url, caption="Here is your photo!")
-            else:
-                await message.reply({
-                                        "uz": "Kechirasiz, mediatsiyani yuklab olishda xatolik yuz berdi.",
-                                        "ru": "Извините, произошла ошибка при загрузке медиа.",
-                                        "en": "Sorry, there was an error downloading the media."
-                                    }[user_language])
-        except Exception as e:
-            await message.reply(
-                f"Xatolik: Iltimos Url manzilni to'g'ri kiriting! "
-                f"⚠️Ogohlantirish faqat VIDEO larni yuklab beramiz POST, REELSdagi video⚠️")
+                # '.mp4' in media_url
+                # '.mov' in media_url
+                if '.mov' in media_url or '.mp4' in media_url:
+                    await bot.send_video(message.chat.id, media_url, caption="Here is your video!")
 
-        # Run the bot
+                #     ['.png' or 'jpg' or 'jpeg'] in media_url
+                elif '.png' in media_url or '.jpg' in media_url or '.jpeg' in media_url:
+                    await bot.send_photo(message.chat.id, media_url, caption="Here is your image!")
+                else:
+                    unsupported_msg = {
+                        "uz": "Ushbu turdagi media qo'llab-quvvatlanmaydi.",
+                        "ru": "Этот тип медиа не поддерживается.",
+                        "en": "This type of media is not supported.",
+                    }
+                    await message.reply(unsupported_msg[user_language])
+        else:
+            error_msg = {
+                "uz": "Kechirasiz, mediatsiya topilmadi.",
+                "ru": "Извините, медиа не найдено.",
+                "en": "Sorry, no media found.",
+            }
+            await message.reply(error_msg[user_language])
+        #
+    # except Exception as e:
+    #     await message.reply(
+    #         f"Xatolik: Iltimos Url manzilni to'g'ri kiriting! "
+    #         f"⚠️Ogohlantirish faqat VIDEO larni yuklab beramiz POST, REELSdagi video⚠️")
+
+
+# Run the bot
 
 
 if __name__ == '__main__':
