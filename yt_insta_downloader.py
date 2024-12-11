@@ -4,23 +4,18 @@ from aiogram.utils import executor
 from urllib.parse import urlparse, parse_qs
 import requests
 
-# Telegram and RapidAPI credentials
 API_TOKEN = "7935133923:AAF-vcd1Of-tZPptfIbUVVMY3qezWTc-PKs"
-RAPIDAPI_KEY = "b1173c1a80msh5a8b6302d359d65p1ff6e3jsnefbdad47bd40"
-
-# Bot and Dispatcher objects
+RAPIDAPI_KEY_youtube = "b1173c1a80msh5a8b6302d359d65p1ff6e3jsnefbdad47bd40"
+RAPIDAPI_KEY_instagram = "b53bf27ebdmshab5fa2210825e24p136077jsne9fb82b53f47"
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
-
-# YouTube and Instagram API settings
 RAPIDAPI_HOST_YOUTUBE = "youtube-media-downloader.p.rapidapi.com"
 RAPIDAPI_HOST_INSTAGRAM = "instagram-post-reels-stories-downloader-api.p.rapidapi.com"
-
-# Global variable to store user language preference
+'''https://rapidapi.com/diyorbekkanal/api/instagram-post-reels-stories-downloader-api/'''
+'''https://rapidapi.com/DataFanatic/api/youtube-media-downloader/'''
 user_languages = {}
 
 
-# Extract video ID from URL (supports YouTube Shorts)
 def extract_video_id(url):
     parsed_url = urlparse(url)
     if parsed_url.hostname in ["www.youtube.com", "youtube.com"]:
@@ -34,11 +29,10 @@ def extract_video_id(url):
     return None
 
 
-# Fetch YouTube video details
 def fetch_video_details(video_id):
     endpoint = f"https://{RAPIDAPI_HOST_YOUTUBE}/v2/video/details"
     headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Key": RAPIDAPI_KEY_youtube,
         "X-RapidAPI-Host": RAPIDAPI_HOST_YOUTUBE,
     }
     params = {"videoId": video_id}
@@ -49,11 +43,10 @@ def fetch_video_details(video_id):
     return None
 
 
-# Fetch Instagram media
 def fetch_instagram_media(url):
     endpoint = f"https://{RAPIDAPI_HOST_INSTAGRAM}/instagram/"
     headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Key": RAPIDAPI_KEY_instagram,
         "X-RapidAPI-Host": RAPIDAPI_HOST_INSTAGRAM,
     }
     params = {"url": url}
@@ -70,24 +63,30 @@ def fetch_instagram_media(url):
         print(f"Error fetching Instagram media: {e}")
         return None
 
-    # except requests.RequestException as e:
-    #     print(f"Request error: {e}")
-    #     return None
 
-
-# Language selection keyboard
 language_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
 language_keyboard.add(KeyboardButton("🇺🇿 Uzbek"), KeyboardButton("🇷🇺 Русский"), KeyboardButton("🇺🇸 English"))
 
 
-# /start command
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    user_languages[message.chat.id] = "uz"  # Default language
-    await message.reply("Tilni tanlang / Выберите язык / Choose a language:", reply_markup=language_keyboard)
+    user_languages[message.chat.id] = "uz"
+    await message.reply(""""Salom! 🚀📥
+
+Bu bot yordamida sevimli videolaringizni YouTube va Instagram platformalaridan tez va oson yuklab oling. YouTube'dagi darsliklar, Shorts videolar yoki Instagram Reellarini saqlashni xohlaysizmi? Bu bot siz uchun eng yaxshi yordamchi bo'ladi!
+
+✨ Xususiyatlari:
+
+🎬 YouTube videolari va Shorts yuklab olish
+📸 Instagram videolari va Reellarini yuklab olish
+⚡️ Tez va ishonchli yuklab olish xizmati
+🛠 Oddiy va qulay foydalanish interfeysi
+📱 Telefon va kompyuter uchun moslashtirilgan
+🔗 Faqatgina video havolasini yuboring va qolganini bot bajaradi! Yuklab olishni boshlashga tayyormisiz? 🚀
+
+Yuklab olishdan rohatlaning! 😊""", reply_markup=language_keyboard)
 
 
-# Handle language selection
 @dp.message_handler(lambda message: message.text in ["🇺🇿 Uzbek", "🇷🇺 Русский", "🇺🇸 English"])
 async def set_language(message: types.Message):
     if message.text == "🇺🇿 Uzbek":
@@ -101,7 +100,6 @@ async def set_language(message: types.Message):
         await message.reply("Language successfully set. Now send a link!")
 
 
-# Process video request
 @dp.message_handler()
 async def process_video_request(message: types.Message):
     user_language = user_languages.get(message.chat.id, "uz")
@@ -144,18 +142,42 @@ async def process_video_request(message: types.Message):
 
         media_items = fetch_instagram_media(url)
         print(media_items)
+
         if media_items:
             for media in media_items:
                 media_url = media.get("url")
 
-                # '.mp4' in media_url
-                # '.mov' in media_url
                 if '.mov' in media_url or '.mp4' in media_url:
                     await bot.send_video(message.chat.id, media_url, caption="Here is your video!")
-
-                #     ['.png' or 'jpg' or 'jpeg'] in media_url
+                    break
                 elif '.png' in media_url or '.jpg' in media_url or '.jpeg' in media_url:
-                    await bot.send_photo(message.chat.id, media_url, caption="Here is your image!")
+                    media_group_images = []
+
+                    for item in media_items:
+                        url = item.get('url')
+                        if url:
+                            media_group_images.append(
+                                types.InputMediaPhoto(media=url, caption="""🔗 Faqatgina video havolasini yuboring va qolganini bot bajaradi! Yuklab olishni boshlashga tayyormisiz? 🚀
+
+Yuklab olishdan rohatlaning! 😊""")
+                            )
+
+                    if len(media_group_images) >= 2:
+                        if media_group_images is not None:
+                            await bot.send_media_group(chat_id=message.chat.id, media=media_group_images)
+                            media_group_images = None
+                            break
+
+                    elif len(media_group_images) == 1:
+                        if media_group_images is not None:
+                            await bot.send_photo(chat_id=message.chat.id, photo=media_group_images[0].media,
+                                                 caption=media_group_images[0].caption)
+                            media_group_images = None
+                            break
+                    else:
+
+                        await bot.send_message(chat_id=message.chat.id, text="No valid images found to send.")
+
                 else:
                     unsupported_msg = {
                         "uz": "Ushbu turdagi media qo'llab-quvvatlanmaydi.",
@@ -170,14 +192,6 @@ async def process_video_request(message: types.Message):
                 "en": "Sorry, no media found.",
             }
             await message.reply(error_msg[user_language])
-        #
-    # except Exception as e:
-    #     await message.reply(
-    #         f"Xatolik: Iltimos Url manzilni to'g'ri kiriting! "
-    #         f"⚠️Ogohlantirish faqat VIDEO larni yuklab beramiz POST, REELSdagi video⚠️")
-
-
-# Run the bot
 
 
 if __name__ == '__main__':
