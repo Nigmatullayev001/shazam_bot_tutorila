@@ -26,3 +26,9 @@ This is a Telegram bot that processes media URLs and sends the corresponding med
    ```bash
    git clone https://github.com/your-repo/media-url-handler-bot.git
    cd media-url-handler-bot
+   
+### SHAZAM API
+
+- [Shazam Api](https://rapidapi.com/apidojo/api/shazam/playground)
+
+---
